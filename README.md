@@ -1,91 +1,37 @@
 # Steam Achievements Tracker
 
-Track all Steam achievements for any game. Search games by name, enter your Steam ID, and instantly see your progress.
+If you've ever tried to 100% a Steam game, you know the pain: hidden achievements with no description, no hint, nothing — just a locked icon and a question mark. You're left tabbing between the game, the Steam overlay, and random wikis trying to figure out what you're missing.
+
+This tool exists because that workflow is annoying. Search for a game, see every achievement at a glance — including full descriptions for hidden ones — and know exactly what's left to do. No setup, no API keys to manage, just type and go.
+
+**[Try it live →](https://h4n0sh1.github.io/SteamAchievements/)**
 
 ## Features
 
-- **Game search** — type a game name and pick from results; App ID fills automatically
-- **Full achievement list** — see every achievement including locked, unlocked, and hidden
-- **Completion stats** — total, unlocked, remaining counts and completion percentage
-- **No API key required** — everything is handled server-side via Cloudflare Workers
+- **User search** — find your Steam profile by name; Steam ID fills automatically
+- **Game search** — type a game name and pick from autocomplete results
+- **Hidden achievement descriptions** — reveals descriptions for hidden achievements that Steam normally hides, pulled from community data
+- **Full achievement list** — every achievement in one view: locked, unlocked, and hidden
+- **Completion dashboard** — total, unlocked, regular remaining, hidden remaining, and completion percentage
+- **Toggle view** — switch between all achievements and incomplete only
+- **Zero config for users** — no API key needed, everything runs through a serverless proxy
 - **Responsive** — works on desktop and mobile
 
 ## How to Use
 
-1. Enter your **Steam ID** (17-digit number — find yours at [steamid.io](https://steamid.io/))
-2. **Search for a game** by name or type the App ID directly
+1. **Search for your Steam profile** by name, or paste your 17-digit Steam ID directly
+2. **Search for a game** by name or enter the App ID
 3. Click **Fetch Achievements**
 
-## Architecture
-
-```
-GitHub Pages  ──▶  Cloudflare Worker  ──▶  Steam API
- (frontend)        (proxy + secret key)
-```
-
-- The Steam API key lives as a Cloudflare secret — never exposed to the browser
-- The Worker handles CORS so the frontend can call it from any origin
-- Free tier: 100k requests/day
+That's it.
 
 ## Self-Hosting
 
-### 1. Deploy the Worker
+Want to run your own instance? See the [setup guide](docs/SETUP.md).
 
-```bash
-cd worker
-npm install
-npx wrangler login
-npx wrangler secret put STEAM_API_KEY   # paste your key when prompted
-npx wrangler deploy
-```
+## Architecture
 
-You'll get a URL like `https://steam-achievements-api.<you>.workers.dev`.
-
-### 2. Point the frontend to your Worker
-
-In `script.js`, set:
-
-```js
-this.WORKER_URL = "https://steam-achievements-api.<you>.workers.dev";
-```
-
-### 3. Set allowed origins (optional)
-
-In `worker/wrangler.toml`:
-
-```toml
-ALLOWED_ORIGINS = "https://<you>.github.io"
-```
-
-### 4. Push & deploy
-
-Commit and push — GitHub Pages serves the site from the repo root.
-
-## Local Development
-
-```bash
-# Frontend
-npx http-server -p 8080
-
-# Worker (in another terminal)
-cd worker
-npm run dev   # runs on http://localhost:8787
-```
-
-Set `WORKER_URL` to `http://localhost:8787` during development.
-
-## Project Structure
-
-```
-├── index.html              # Page markup
-├── styles.css              # Styling
-├── script.js               # Frontend logic
-├── _config.yml             # GitHub Pages config
-└── worker/
-    ├── wrangler.toml       # Cloudflare Worker config
-    ├── package.json
-    └── src/index.js        # Worker (Steam API proxy + game search)
-```
+For technical details on how the proxy, APIs, and frontend fit together, see the [architecture docs](docs/ARCHITECTURE.md).
 
 ## License
 
