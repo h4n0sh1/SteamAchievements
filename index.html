@@ -10,7 +10,7 @@
     <div class="container">
       <header>
         <h1>Steam Achievements Tracker</h1>
-        <p class="subtitle">Find hidden achievements for any Steam game</p>
+        <p class="subtitle">Track all achievements for any Steam game</p>
       </header>
 
       <div class="input-section">
@@ -22,7 +22,7 @@
               <a href="https://steamid.io/" target="_blank">steamid.io</a>
             </li>
             <li>Search for your game by name or enter the App ID directly</li>
-            <li>Click "Fetch Achievements" to see your hidden achievements!</li>
+            <li>Click "Fetch Achievements" to see your progress!</li>
           </ol>
         </div>
 
@@ -89,8 +89,12 @@
               <span class="stat-label">Unlocked</span>
             </div>
             <div class="stat-card">
-              <span class="stat-value" id="hiddenAchievements">0</span>
-              <span class="stat-label">Hidden</span>
+              <span class="stat-value" id="regularRemaining">0</span>
+              <span class="stat-label">Regular Remaining</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="hiddenRemaining">0</span>
+              <span class="stat-label">Hidden Remaining</span>
             </div>
             <div class="stat-card">
               <span class="stat-value" id="completionRate">0%</span>
@@ -102,7 +106,7 @@
         <div class="achievements-section">
           <div class="section-header">
             <h3>Achievements</h3>
-            <button id="toggleView" class="toggle-btn">Show All</button>
+            <button id="toggleView" class="toggle-btn">Show Incomplete Only</button>
           </div>
           <div id="achievementsList" class="achievements-list"></div>
         </div>

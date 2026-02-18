@@ -1,12 +1,12 @@
 # Steam Achievements Tracker
 
-Track and discover hidden Steam achievements for any game. Search games by name, enter your Steam ID, and instantly see what you're missing.
+Track all Steam achievements for any game. Search games by name, enter your Steam ID, and instantly see your progress.
 
 ## Features
 
 - **Game search** — type a game name and pick from results; App ID fills automatically
-- **Hidden achievement reveal** — see descriptions for hidden/secret achievements
-- **Completion stats** — total, unlocked, hidden counts and completion percentage
+- **Full achievement list** — see every achievement including locked, unlocked, and hidden
+- **Completion stats** — total, unlocked, remaining counts and completion percentage
 - **No API key required** — everything is handled server-side via Cloudflare Workers
 - **Responsive** — works on desktop and mobile
 

@@ -13,7 +13,7 @@ class SteamAchievementsTracker {
     this.gameId = "";
     this.allAchievements = [];
     this.userAchievements = [];
-    this.showOnlyIncomplete = true;
+    this.showOnlyIncomplete = false;
     this.searchDebounceTimer = null;
     this.DEFAULT_ACHIEVEMENT_ICON =
       "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22%3E%3Crect fill=%22%232a475e%22 width=%2264%22 height=%2264%22/%3E%3C/svg%3E";
@@ -290,14 +290,14 @@ class SteamAchievementsTracker {
 
     const total = this.allAchievements.length;
     const unlocked = this.allAchievements.filter((a) => a.unlocked).length;
-    const hidden = this.allAchievements.filter(
-      (a) => a.hidden && !a.unlocked,
-    ).length;
+    const hiddenRemaining = this.allAchievements.filter((a) => a.hidden && !a.unlocked).length;
+    const regularRemaining = total - unlocked - hiddenRemaining;
     const completion = total > 0 ? Math.round((unlocked / total) * 100) : 0;
 
     document.getElementById("totalAchievements").textContent = total;
     document.getElementById("unlockedAchievements").textContent = unlocked;
-    document.getElementById("hiddenAchievements").textContent = hidden;
+    document.getElementById("regularRemaining").textContent = regularRemaining;
+    document.getElementById("hiddenRemaining").textContent = hiddenRemaining;
     document.getElementById("completionRate").textContent = completion + "%";
 
     this.renderAchievements();
