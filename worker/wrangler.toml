@@ -1,0 +1,10 @@
+name = "steam-achievements-api"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# STEAM_API_KEY is stored as a secret, not here.
+# Run: npx wrangler secret put STEAM_API_KEY
+# Then paste your key when prompted.
+
+ALLOWED_ORIGINS = "https://h4n0sh1.github.io"
