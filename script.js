@@ -6,8 +6,7 @@ class SteamAchievementsTracker {
     // ── Worker endpoint ──────────────────────────────────────────────
     // Change this to your deployed Cloudflare Worker URL.
     // During local dev you can use: http://localhost:8787
-    this.WORKER_URL =
-      "https://steam-achievements-api.<YOUR_CF_SUBDOMAIN>.workers.dev";
+    this.WORKER_URL = "https://steam-achievements-api.nyxem.workers.dev";
 
     this.steamId = "";
     this.gameId = "";
@@ -290,7 +289,9 @@ class SteamAchievementsTracker {
 
     const total = this.allAchievements.length;
     const unlocked = this.allAchievements.filter((a) => a.unlocked).length;
-    const hiddenRemaining = this.allAchievements.filter((a) => a.hidden && !a.unlocked).length;
+    const hiddenRemaining = this.allAchievements.filter(
+      (a) => a.hidden && !a.unlocked,
+    ).length;
     const regularRemaining = total - unlocked - hiddenRemaining;
     const completion = total > 0 ? Math.round((unlocked / total) * 100) : 0;
 
