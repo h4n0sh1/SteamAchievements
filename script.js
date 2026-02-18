@@ -7,7 +7,8 @@ class SteamAchievementsTracker {
         this.trophySource = 'steamhunters';
         this.allAchievements = [];
         this.userAchievements = [];
-        this.showOnlyHidden = true;
+        this.showOnlyIncomplete = true;
+        this.DEFAULT_ACHIEVEMENT_ICON = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22%3E%3Crect fill=%22%232a475e%22 width=%2264%22 height=%2264%22/%3E%3C/svg%3E';
 
         this.initializeEventListeners();
     }
@@ -80,27 +81,15 @@ class SteamAchievementsTracker {
             return input;
         }
         
-        // Extract from URL formats
-        const patterns = [
-            /steamcommunity\.com\/profiles\/(\d{17})/,
-            /steamcommunity\.com\/id\/([^\/]+)/
-        ];
-        
-        for (const pattern of patterns) {
-            const match = input.match(pattern);
-            if (match) {
-                // If it's a custom URL, we'd need to resolve it (requires additional API call)
-                // For now, return the Steam ID if it's a profile URL
-                if (pattern.source.includes('profiles')) {
-                    return match[1];
-                }
-                // For custom URLs, inform the user to use Steam ID
-                this.showError('Please use your 17-digit Steam ID instead of custom URL');
-                return '';
-            }
+        // Try to extract from profile URL format
+        const profileMatch = input.match(/steamcommunity\.com\/profiles\/(\d{17})/);
+        if (profileMatch) {
+            return profileMatch[1];
         }
         
-        return input;
+        // For any other format, show error
+        this.showError('Please enter a valid 17-digit Steam ID. Find yours at steamid.io');
+        return '';
     }
 
     async fetchGameSchema() {
@@ -219,9 +208,9 @@ class SteamAchievementsTracker {
         const achievementsList = document.getElementById('achievementsList');
         let achievements = this.allAchievements;
         
-        // Filter based on view mode
-        if (this.showOnlyHidden) {
-            achievements = achievements.filter(a => a.hidden || !a.unlocked);
+        // Filter based on view mode: show only incomplete (locked or hidden) achievements
+        if (this.showOnlyIncomplete) {
+            achievements = achievements.filter(a => !a.unlocked);
         }
         
         if (achievements.length === 0) {
@@ -234,7 +223,7 @@ class SteamAchievementsTracker {
                 <img src="${achievement.unlocked ? achievement.icon : achievement.iconGray}" 
                      alt="${achievement.name}" 
                      class="achievement-icon ${achievement.unlocked ? '' : 'locked'}"
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22%3E%3Crect fill=%22%232a475e%22 width=%2264%22 height=%2264%22/%3E%3C/svg%3E'">
+                     onerror="this.src='${this.DEFAULT_ACHIEVEMENT_ICON}'">
                 <div class="achievement-info">
                     <div class="achievement-name">
                         ${achievement.name}
@@ -251,9 +240,9 @@ class SteamAchievementsTracker {
     }
 
     toggleView() {
-        this.showOnlyHidden = !this.showOnlyHidden;
+        this.showOnlyIncomplete = !this.showOnlyIncomplete;
         const toggleBtn = document.getElementById('toggleView');
-        toggleBtn.textContent = this.showOnlyHidden ? 'Show All' : 'Show Hidden Only';
+        toggleBtn.textContent = this.showOnlyIncomplete ? 'Show All' : 'Show Incomplete Only';
         this.renderAchievements();
     }
 
