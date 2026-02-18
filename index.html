@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Achievements Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Steam Achievements Tracker</h1>
+            <p class="subtitle">Find hidden achievements for any Steam game</p>
+        </header>
+
+        <div class="input-section">
+            <div class="info-box">
+                <h3>ℹ️ Quick Start Guide</h3>
+                <ol>
+                    <li>Get your free <a href="https://steamcommunity.com/dev/apikey" target="_blank">Steam API Key</a></li>
+                    <li>Find your 17-digit Steam ID using <a href="https://steamid.io/" target="_blank">steamid.io</a></li>
+                    <li>Enter the Steam App ID of the game (find it in the game's store URL)</li>
+                    <li>Select your preferred trophy list source</li>
+                    <li>Click "Fetch Achievements" to see your hidden achievements!</li>
+                </ol>
+            </div>
+
+            <div class="input-group">
+                <label for="steamId">Steam ID (17-digit numeric ID):</label>
+                <input type="text" id="steamId" placeholder="Enter your 17-digit Steam ID">
+                <small>Example: 76561198000000000 (find yours at <a href="https://steamid.io/" target="_blank">steamid.io</a>)</small>
+            </div>
+
+            <div class="input-group">
+                <label for="gameId">Game App ID:</label>
+                <input type="text" id="gameId" placeholder="Enter Steam App ID">
+                <small>Example: 730 (CS:GO), 440 (TF2)</small>
+            </div>
+
+            <div class="input-group">
+                <label for="apiKey">Steam API Key:</label>
+                <input type="password" id="apiKey" placeholder="Enter your Steam API key">
+                <small>Get your key at <a href="https://steamcommunity.com/dev/apikey" target="_blank">steamcommunity.com/dev/apikey</a></small>
+            </div>
+
+            <div class="input-group">
+                <label for="trophySource">Trophy List Source:</label>
+                <select id="trophySource">
+                    <option value="steamhunters">Steam Hunters</option>
+                    <option value="steamapi">Steam API Only</option>
+                    <option value="astats">AStats</option>
+                </select>
+            </div>
+
+            <button id="fetchBtn" class="primary-btn">Fetch Achievements</button>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Loading achievements...</p>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+
+        <div id="results" class="results hidden">
+            <div class="stats-summary">
+                <h2>Achievement Summary</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-value" id="totalAchievements">0</span>
+                        <span class="stat-label">Total Achievements</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="unlockedAchievements">0</span>
+                        <span class="stat-label">Unlocked</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="hiddenAchievements">0</span>
+                        <span class="stat-label">Hidden</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="completionRate">0%</span>
+                        <span class="stat-label">Completion</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="achievements-section">
+                <div class="section-header">
+                    <h3>Achievements</h3>
+                    <button id="toggleView" class="toggle-btn">Show All</button>
+                </div>
+                <div id="achievementsList" class="achievements-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
