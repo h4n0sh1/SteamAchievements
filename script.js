@@ -108,35 +108,59 @@ class SteamAchievementsTracker {
         
         try {
             const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (!data.game || !data.game.availableGameStats || !data.game.availableGameStats.achievements) {
-                throw new Error('No achievements found for this game');
+                throw new Error('No achievements found for this game. Make sure the App ID is correct and the game has achievements.');
             }
             
             return data.game.availableGameStats.achievements;
         } catch (error) {
+            console.error('Fetch error:', error);
             // If Steam API fails, try alternative sources based on selection
             if (this.trophySource === 'steamhunters') {
-                return this.fetchFromSteamHunters();
+                throw new Error('Steam Hunters API integration requires additional setup. Please use Steam API Only option.');
             } else if (this.trophySource === 'astats') {
-                return this.fetchFromAStats();
+                throw new Error('AStats API integration requires additional setup. Please use Steam API Only option.');
             }
-            throw new Error('Failed to fetch game achievements schema');
+            throw new Error(`Failed to fetch game achievements: ${error.message}`);
         }
     }
 
     async fetchUserAchievements() {
         const url = `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key=${this.apiKey}&steamid=${this.steamId}&appid=${this.gameId}`;
         
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (!data.playerstats || !data.playerstats.achievements) {
-            throw new Error('No achievement data found for this user/game combination');
+        try {
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.playerstats) {
+                throw new Error('No player stats found. Check your Steam ID and make sure your profile is public.');
+            }
+            
+            if (data.playerstats.error) {
+                throw new Error(`Steam API error: ${data.playerstats.error}`);
+            }
+            
+            if (!data.playerstats.achievements) {
+                throw new Error('No achievement data found. The user may not own this game or the game has no achievements.');
+            }
+            
+            return data.playerstats.achievements;
+        } catch (error) {
+            console.error('Fetch error:', error);
+            throw new Error(`Failed to fetch user achievements: ${error.message}`);
         }
-        
-        return data.playerstats.achievements;
     }
 
     async fetchFromSteamHunters() {

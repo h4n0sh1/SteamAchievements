@@ -60,6 +60,35 @@ h1 {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
+.info-box {
+    background: var(--steam-darker);
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 25px;
+    border-left: 4px solid var(--steam-light-blue);
+}
+
+.info-box h3 {
+    color: var(--steam-light-blue);
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.info-box ol {
+    margin-left: 20px;
+    color: var(--steam-light-gray);
+    line-height: 1.8;
+}
+
+.info-box a {
+    color: var(--steam-light-blue);
+    text-decoration: none;
+}
+
+.info-box a:hover {
+    text-decoration: underline;
+}
+
 .input-group {
     margin-bottom: 20px;
 }
