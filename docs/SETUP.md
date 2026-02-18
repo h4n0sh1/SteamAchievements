@@ -68,7 +68,7 @@ Set `WORKER_URL` to `http://localhost:8787` in `script.js` during development.
 
 ## Environment variables
 
-| Variable | Type | Description |
-|---|---|---|
-| `STEAM_API_KEY` | Secret | Your Steam Web API key |
-| `ALLOWED_ORIGINS` | Var | Comma-separated list of allowed CORS origins |
+| Variable          | Type   | Description                                  |
+| ----------------- | ------ | -------------------------------------------- |
+| `STEAM_API_KEY`   | Secret | Your Steam Web API key                       |
+| `ALLOWED_ORIGINS` | Var    | Comma-separated list of allowed CORS origins |

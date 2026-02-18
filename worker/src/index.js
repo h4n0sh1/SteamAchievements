@@ -207,6 +207,7 @@ async function handleGetHiddenDescriptions(request, env) {
 async function handleSearchUsers(request, env) {
   const url = new URL(request.url);
   const term = url.searchParams.get("term");
+  const page = parseInt(url.searchParams.get("page") || "1", 10);
 
   if (!term || term.length < 2) {
     return jsonResponse(
@@ -242,9 +243,9 @@ async function handleSearchUsers(request, env) {
 
     const sessionId = sessionMatch[1];
 
-    // Step 2: Call the AJAX search endpoint
+    // Step 2: Call the AJAX search endpoint with page parameter
     const ajaxResp = await fetch(
-      `https://steamcommunity.com/search/SearchCommunityAjax?text=${encodeURIComponent(term)}&filter=users&sessionid=${sessionId}&steamid_user=false`,
+      `https://steamcommunity.com/search/SearchCommunityAjax?text=${encodeURIComponent(term)}&filter=users&sessionid=${sessionId}&steamid_user=false&page=${page}`,
       {
         headers: {
           "User-Agent":
@@ -257,11 +258,16 @@ async function handleSearchUsers(request, env) {
     const data = await ajaxResp.json();
 
     if (!data.success || !data.html) {
-      return jsonResponse([], 200, request, env);
+      return jsonResponse(
+        { users: [], page, totalResults: 0, hasMore: false },
+        200,
+        request,
+        env,
+      );
     }
 
     // Step 3: Parse the HTML to extract user entries
-    const results = [];
+    const users = [];
     const entryRegex =
       /<a class="searchPersonaName" href="https:\/\/steamcommunity\.com\/(profiles|id)\/([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
     const avatarRegex =
@@ -284,7 +290,7 @@ async function handleSearchUsers(request, env) {
 
     for (let i = 0; i < entries.length; i++) {
       const e = entries[i];
-      results.push({
+      users.push({
         name: e.name,
         avatar: avatars[i] || "",
         steamId: e.type === "profiles" ? e.urlPart : null,
@@ -293,7 +299,15 @@ async function handleSearchUsers(request, env) {
       });
     }
 
-    return jsonResponse(results, 200, request, env);
+    const totalResults = data.search_result_count || 0;
+    const hasMore = users.length > 0 && page * 20 < totalResults;
+
+    return jsonResponse(
+      { users, page, totalResults, hasMore },
+      200,
+      request,
+      env,
+    );
   } catch (err) {
     return jsonResponse(
       { error: "Failed to search Steam users", details: err.message },

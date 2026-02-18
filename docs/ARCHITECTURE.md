@@ -19,15 +19,15 @@ The frontend is a static site hosted on GitHub Pages. It never touches the Steam
 
 ## Worker endpoints
 
-| Endpoint | Source | Purpose |
-|---|---|---|
-| `/api/schema?appid=` | Steam `GetSchemaForGame/v2` | Game achievement definitions (names, icons, hidden flag) |
-| `/api/achievements?appid=&steamid=` | Steam `GetPlayerAchievements/v1` | Player unlock status and timestamps |
-| `/api/global?appid=` | Steam `GetGlobalAchievementPercentagesForApp/v2` | Global unlock percentages |
-| `/api/search?term=` | Steam Store suggestions | Game name autocomplete |
-| `/api/hidden-descriptions?appid=` | SteamHunters API | Descriptions for hidden achievements |
-| `/api/search-users?term=` | Steam Community AJAX | User profile search by name |
-| `/api/resolve-vanity?vanityurl=` | Steam `ResolveVanityURL/v1` | Convert vanity URL to Steam64 ID |
+| Endpoint                            | Source                                           | Purpose                                                  |
+| ----------------------------------- | ------------------------------------------------ | -------------------------------------------------------- |
+| `/api/schema?appid=`                | Steam `GetSchemaForGame/v2`                      | Game achievement definitions (names, icons, hidden flag) |
+| `/api/achievements?appid=&steamid=` | Steam `GetPlayerAchievements/v1`                 | Player unlock status and timestamps                      |
+| `/api/global?appid=`                | Steam `GetGlobalAchievementPercentagesForApp/v2` | Global unlock percentages                                |
+| `/api/search?term=`                 | Steam Store suggestions                          | Game name autocomplete                                   |
+| `/api/hidden-descriptions?appid=`   | SteamHunters API                                 | Descriptions for hidden achievements                     |
+| `/api/search-users?term=`           | Steam Community AJAX                             | User profile search by name                              |
+| `/api/resolve-vanity?vanityurl=`    | Steam `ResolveVanityURL/v1`                      | Convert vanity URL to Steam64 ID                         |
 
 ## Data flow: fetching achievements
 

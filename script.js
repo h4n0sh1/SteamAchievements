@@ -15,6 +15,10 @@ class SteamAchievementsTracker {
     this.showOnlyIncomplete = false;
     this.searchDebounceTimer = null;
     this.userSearchDebounceTimer = null;
+    this.userSearchPage = 1;
+    this.userSearchTerm = "";
+    this.userSearchHasMore = false;
+    this.userSearchLoading = false;
     this.DEFAULT_ACHIEVEMENT_ICON =
       "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22%3E%3Crect fill=%22%232a475e%22 width=%2264%22 height=%2264%22/%3E%3C/svg%3E";
 
@@ -43,6 +47,15 @@ class SteamAchievementsTracker {
     userSearch.addEventListener("keydown", (e) =>
       this.onUserSearchKeydown(e),
     );
+
+    // Infinite scroll on user search dropdown
+    userSearchResults.addEventListener("scroll", () => {
+      if (this.userSearchLoading || !this.userSearchHasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = userSearchResults;
+      if (scrollTop + clientHeight >= scrollHeight - 40) {
+        this.loadMoreUsers();
+      }
+    });
 
     // Close dropdowns when clicking outside
     document.addEventListener("click", (e) => {
@@ -179,8 +192,13 @@ class SteamAchievementsTracker {
       return;
     }
 
+    // Reset pagination on new input
+    this.userSearchPage = 1;
+    this.userSearchTerm = term;
+    this.userSearchHasMore = false;
+
     this.userSearchDebounceTimer = setTimeout(
-      () => this.searchUsers(term),
+      () => this.searchUsers(term, 1, false),
       300,
     );
   }
@@ -223,29 +241,33 @@ class SteamAchievementsTracker {
     }
   }
 
-  async searchUsers(term) {
+  async searchUsers(term, page = 1, append = false) {
     const dropdown = document.getElementById("userSearchResults");
+    this.userSearchLoading = true;
 
     try {
       const resp = await fetch(
-        `${this.WORKER_URL}/api/search-users?term=${encodeURIComponent(term)}`,
+        `${this.WORKER_URL}/api/search-users?term=${encodeURIComponent(term)}&page=${page}`,
       );
 
       if (!resp.ok) {
-        dropdown.classList.add("hidden");
+        if (!append) dropdown.classList.add("hidden");
         return;
       }
 
-      const users = await resp.json();
+      const data = await resp.json();
+      const users = data.users || [];
+      this.userSearchHasMore = data.hasMore || false;
+      this.userSearchPage = page;
 
-      if (!Array.isArray(users) || users.length === 0) {
+      if (users.length === 0 && !append) {
         dropdown.innerHTML =
           '<div class="search-empty">No users found</div>';
         dropdown.classList.remove("hidden");
         return;
       }
 
-      dropdown.innerHTML = users
+      const html = users
         .map(
           (u) =>
             `<div class="search-item user-search-item"
@@ -262,10 +284,31 @@ class SteamAchievementsTracker {
         )
         .join("");
 
+      if (append) {
+        // Remove the loading indicator before appending
+        const loader = dropdown.querySelector(".search-loading");
+        if (loader) loader.remove();
+        dropdown.insertAdjacentHTML("beforeend", html);
+      } else {
+        dropdown.innerHTML = html;
+      }
+
+      // Show "load more" indicator if there are more pages
+      if (this.userSearchHasMore) {
+        dropdown.insertAdjacentHTML(
+          "beforeend",
+          '<div class="search-loading">Scroll for more results...</div>',
+        );
+      }
+
       dropdown.classList.remove("hidden");
 
-      // Attach click handlers
-      dropdown.querySelectorAll(".search-item").forEach((item) => {
+      // Attach click handlers to new items only
+      const items = append
+        ? dropdown.querySelectorAll(".search-item:not([data-bound])")
+        : dropdown.querySelectorAll(".search-item");
+      items.forEach((item) => {
+        item.setAttribute("data-bound", "1");
         item.addEventListener("click", () => {
           this.selectUser(
             item.dataset.steamid,
@@ -275,8 +318,19 @@ class SteamAchievementsTracker {
         });
       });
     } catch {
-      dropdown.classList.add("hidden");
+      if (!append) dropdown.classList.add("hidden");
+    } finally {
+      this.userSearchLoading = false;
     }
+  }
+
+  async loadMoreUsers() {
+    if (!this.userSearchTerm || !this.userSearchHasMore) return;
+    await this.searchUsers(
+      this.userSearchTerm,
+      this.userSearchPage + 1,
+      true,
+    );
   }
 
   async selectUser(steamId, vanityUrl, name) {
