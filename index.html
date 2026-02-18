@@ -21,10 +21,7 @@
               Find your 17-digit Steam ID using
               <a href="https://steamid.io/" target="_blank">steamid.io</a>
             </li>
-            <li>
-              Enter the Steam App ID of the game (find it in the game's store
-              URL)
-            </li>
+            <li>Search for your game by name or enter the App ID directly</li>
             <li>Click "Fetch Achievements" to see your hidden achievements!</li>
           </ol>
         </div>
@@ -43,9 +40,30 @@
         </div>
 
         <div class="input-group">
+          <label for="gameSearch">Game Name:</label>
+          <div class="search-wrapper">
+            <input
+              type="text"
+              id="gameSearch"
+              placeholder="Search for a game..."
+              autocomplete="off"
+            />
+            <div id="searchResults" class="search-results hidden"></div>
+          </div>
+          <small>Start typing to search for a game</small>
+        </div>
+
+        <div class="input-group">
           <label for="gameId">Game App ID:</label>
-          <input type="text" id="gameId" placeholder="Enter Steam App ID" />
-          <small>Example: 730 (CS:GO), 440 (TF2)</small>
+          <input
+            type="text"
+            id="gameId"
+            placeholder="Auto-filled or enter manually"
+          />
+          <small
+            >Filled automatically when you select a game, or enter
+            manually</small
+          >
         </div>
 
         <button id="fetchBtn" class="primary-btn">Fetch Achievements</button>

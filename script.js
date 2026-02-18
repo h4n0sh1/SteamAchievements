@@ -14,6 +14,7 @@ class SteamAchievementsTracker {
     this.allAchievements = [];
     this.userAchievements = [];
     this.showOnlyIncomplete = true;
+    this.searchDebounceTimer = null;
     this.DEFAULT_ACHIEVEMENT_ICON =
       "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22%3E%3Crect fill=%22%232a475e%22 width=%2264%22 height=%2264%22/%3E%3C/svg%3E";
 
@@ -25,15 +26,131 @@ class SteamAchievementsTracker {
   initializeEventListeners() {
     const fetchBtn = document.getElementById("fetchBtn");
     const toggleBtn = document.getElementById("toggleView");
+    const gameSearch = document.getElementById("gameSearch");
+    const searchResults = document.getElementById("searchResults");
 
     fetchBtn.addEventListener("click", () => this.fetchAchievements());
     toggleBtn.addEventListener("click", () => this.toggleView());
 
+    // Game search autocomplete
+    gameSearch.addEventListener("input", () => this.onSearchInput());
+    gameSearch.addEventListener("keydown", (e) => this.onSearchKeydown(e));
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".search-wrapper")) {
+        searchResults.classList.add("hidden");
+      }
+    });
+
     document.querySelectorAll("input").forEach((input) => {
       input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") this.fetchAchievements();
+        if (e.key === "Enter" && input.id !== "gameSearch") {
+          this.fetchAchievements();
+        }
       });
     });
+  }
+
+  // ── Game search ──────────────────────────────────────────────────────
+
+  onSearchInput() {
+    const term = document.getElementById("gameSearch").value.trim();
+    clearTimeout(this.searchDebounceTimer);
+
+    if (term.length < 2) {
+      document.getElementById("searchResults").classList.add("hidden");
+      return;
+    }
+
+    this.searchDebounceTimer = setTimeout(() => this.searchGames(term), 250);
+  }
+
+  onSearchKeydown(e) {
+    const dropdown = document.getElementById("searchResults");
+    const items = dropdown.querySelectorAll(".search-item");
+    const active = dropdown.querySelector(".search-item.active");
+
+    if (e.key === "Escape") {
+      dropdown.classList.add("hidden");
+      return;
+    }
+
+    if (!items.length || dropdown.classList.contains("hidden")) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = active ? active.nextElementSibling || items[0] : items[0];
+      items.forEach((i) => i.classList.remove("active"));
+      next.classList.add("active");
+      next.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prev = active
+        ? active.previousElementSibling || items[items.length - 1]
+        : items[items.length - 1];
+      items.forEach((i) => i.classList.remove("active"));
+      prev.classList.add("active");
+      prev.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (active) {
+        this.selectGame(active.dataset.appid, active.dataset.name);
+      }
+    }
+  }
+
+  async searchGames(term) {
+    const dropdown = document.getElementById("searchResults");
+
+    try {
+      const resp = await fetch(
+        `${this.WORKER_URL}/api/search?term=${encodeURIComponent(term)}`,
+      );
+
+      if (!resp.ok) {
+        dropdown.classList.add("hidden");
+        return;
+      }
+
+      const games = await resp.json();
+
+      if (!Array.isArray(games) || games.length === 0) {
+        dropdown.innerHTML = '<div class="search-empty">No games found</div>';
+        dropdown.classList.remove("hidden");
+        return;
+      }
+
+      dropdown.innerHTML = games
+        .map(
+          (g) =>
+            `<div class="search-item" data-appid="${g.appid}" data-name="${g.name.replace(/"/g, "&quot;")}">
+              <img class="search-item-img" src="${g.img}" alt="" onerror="this.style.display='none'">
+              <div class="search-item-info">
+                <span class="search-item-name">${g.name}</span>
+                <span class="search-item-appid">${g.appid}</span>
+              </div>
+            </div>`,
+        )
+        .join("");
+
+      dropdown.classList.remove("hidden");
+
+      // Attach click handlers
+      dropdown.querySelectorAll(".search-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          this.selectGame(item.dataset.appid, item.dataset.name);
+        });
+      });
+    } catch {
+      dropdown.classList.add("hidden");
+    }
+  }
+
+  selectGame(appid, name) {
+    document.getElementById("gameId").value = appid;
+    document.getElementById("gameSearch").value = name;
+    document.getElementById("searchResults").classList.add("hidden");
   }
 
   // ── Main flow ────────────────────────────────────────────────────────

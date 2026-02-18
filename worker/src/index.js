@@ -92,6 +92,63 @@ async function handleGetGlobalPercentages(request, env) {
   return proxySteam(steamUrl, request, env);
 }
 
+async function handleSearchGames(request, env) {
+  const url = new URL(request.url);
+  const term = url.searchParams.get("term");
+
+  if (!term || term.length < 2) {
+    return jsonResponse(
+      { error: "Search term must be at least 2 characters" },
+      400,
+      request,
+      env,
+    );
+  }
+
+  try {
+    // Use Steam's store search suggest endpoint
+    const steamUrl = `https://store.steampowered.com/search/suggest?term=${encodeURIComponent(term)}&f=games&cc=us&realm=1&l=english&excluded_content_descriptors%5B%5D=3&excluded_content_descriptors%5B%5D=4&use_b_search_supports_signing=1`;
+    const resp = await fetch(steamUrl, {
+      headers: {
+        "User-Agent": "SteamAchievementsTracker/1.0",
+        Accept: "text/html",
+      },
+    });
+
+    const html = await resp.text();
+
+    // Parse the HTML response into structured data
+    // Each result is an <a> with data-ds-appid, containing match_name and match_price divs
+    const results = [];
+    const regex =
+      /<a[^>]*data-ds-appid="(\d+)"[^>]*>[\s\S]*?<div class="match_name">([\s\S]*?)<\/div>[\s\S]*?<div class="match_img"><img[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/a>/g;
+    let match;
+
+    while ((match = regex.exec(html)) !== null && results.length < 20) {
+      results.push({
+        appid: match[1],
+        name: match[2]
+          .trim()
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&#039;/g, "'")
+          .replace(/&quot;/g, '"'),
+        img: match[3],
+      });
+    }
+
+    return jsonResponse(results, 200, request, env);
+  } catch (err) {
+    return jsonResponse(
+      { error: "Failed to search Steam games", details: err.message },
+      502,
+      request,
+      env,
+    );
+  }
+}
+
 // ─── Shared proxy logic ──────────────────────────────────────────────────────
 
 async function proxySteam(steamUrl, request, env) {
@@ -153,6 +210,8 @@ export default {
         return handleGetPlayerAchievements(request, env);
       case "/api/global":
         return handleGetGlobalPercentages(request, env);
+      case "/api/search":
+        return handleSearchGames(request, env);
       case "/":
         return jsonResponse(
           { status: "ok", message: "Steam Achievements API Proxy" },
