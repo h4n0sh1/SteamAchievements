@@ -149,6 +149,192 @@ async function handleSearchGames(request, env) {
   }
 }
 
+// ─── Hidden achievement descriptions (via SteamHunters) ──────────────────────
+
+async function handleGetHiddenDescriptions(request, env) {
+  const url = new URL(request.url);
+  const appid = url.searchParams.get("appid");
+
+  if (!appid) {
+    return jsonResponse(
+      { error: "Missing required parameter: appid" },
+      400,
+      request,
+      env,
+    );
+  }
+
+  try {
+    const resp = await fetch(
+      `https://steamhunters.com/api/apps/${appid}/achievements`,
+      {
+        headers: { "User-Agent": "SteamAchievementsTracker/1.0" },
+      },
+    );
+
+    if (!resp.ok) {
+      return jsonResponse(
+        { error: "SteamHunters returned " + resp.status },
+        502,
+        request,
+        env,
+      );
+    }
+
+    const achievements = await resp.json();
+
+    // Return a map of apiName → description for easy merging on the frontend
+    const descriptions = {};
+    for (const ach of achievements) {
+      if (ach.apiName && ach.description) {
+        descriptions[ach.apiName] = ach.description;
+      }
+    }
+
+    return jsonResponse(descriptions, 200, request, env);
+  } catch (err) {
+    return jsonResponse(
+      { error: "Failed to fetch hidden descriptions", details: err.message },
+      502,
+      request,
+      env,
+    );
+  }
+}
+
+// ─── User search (via Steam Community) ───────────────────────────────────────
+
+async function handleSearchUsers(request, env) {
+  const url = new URL(request.url);
+  const term = url.searchParams.get("term");
+
+  if (!term || term.length < 2) {
+    return jsonResponse(
+      { error: "Search term must be at least 2 characters" },
+      400,
+      request,
+      env,
+    );
+  }
+
+  try {
+    // Step 1: Get a session ID from the Steam Community search page
+    const pageResp = await fetch(
+      "https://steamcommunity.com/search/users/",
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+      },
+    );
+    const pageHtml = await pageResp.text();
+    const sessionMatch = pageHtml.match(/g_sessionID\s*=\s*"([^"]+)"/);
+
+    if (!sessionMatch) {
+      return jsonResponse(
+        { error: "Could not obtain Steam session" },
+        502,
+        request,
+        env,
+      );
+    }
+
+    const sessionId = sessionMatch[1];
+
+    // Step 2: Call the AJAX search endpoint
+    const ajaxResp = await fetch(
+      `https://steamcommunity.com/search/SearchCommunityAjax?text=${encodeURIComponent(term)}&filter=users&sessionid=${sessionId}&steamid_user=false`,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          Cookie: `sessionid=${sessionId}`,
+        },
+      },
+    );
+
+    const data = await ajaxResp.json();
+
+    if (!data.success || !data.html) {
+      return jsonResponse([], 200, request, env);
+    }
+
+    // Step 3: Parse the HTML to extract user entries
+    const results = [];
+    const entryRegex =
+      /<a class="searchPersonaName" href="https:\/\/steamcommunity\.com\/(profiles|id)\/([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+    const avatarRegex =
+      /<div class="avatarMedium">\s*<a[^>]*>\s*<img[^>]*src="([^"]*)"[^>]*>/g;
+
+    const entries = [];
+    let m;
+    while ((m = entryRegex.exec(data.html)) !== null) {
+      entries.push({
+        type: m[1],
+        urlPart: m[2],
+        name: decodeHtmlEntities(m[3].trim()),
+      });
+    }
+
+    const avatars = [];
+    while ((m = avatarRegex.exec(data.html)) !== null) {
+      avatars.push(m[1]);
+    }
+
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      results.push({
+        name: e.name,
+        avatar: avatars[i] || "",
+        steamId: e.type === "profiles" ? e.urlPart : null,
+        vanityUrl: e.type === "id" ? e.urlPart : null,
+        profileUrl: `https://steamcommunity.com/${e.type}/${e.urlPart}`,
+      });
+    }
+
+    return jsonResponse(results, 200, request, env);
+  } catch (err) {
+    return jsonResponse(
+      { error: "Failed to search Steam users", details: err.message },
+      502,
+      request,
+      env,
+    );
+  }
+}
+
+// ─── Resolve vanity URL to Steam64 ID ────────────────────────────────────────
+
+async function handleResolveVanity(request, env) {
+  const url = new URL(request.url);
+  const vanityurl = url.searchParams.get("vanityurl");
+
+  if (!vanityurl) {
+    return jsonResponse(
+      { error: "Missing required parameter: vanityurl" },
+      400,
+      request,
+      env,
+    );
+  }
+
+  const steamUrl = `${STEAM_BASE}/ISteamUser/ResolveVanityURL/v1/?key=${env.STEAM_API_KEY}&vanityurl=${encodeURIComponent(vanityurl)}`;
+  return proxySteam(steamUrl, request, env);
+}
+
+// ─── Utility ─────────────────────────────────────────────────────────────────
+
+function decodeHtmlEntities(str) {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#039;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n));
+}
+
 // ─── Shared proxy logic ──────────────────────────────────────────────────────
 
 async function proxySteam(steamUrl, request, env) {
@@ -212,6 +398,12 @@ export default {
         return handleGetGlobalPercentages(request, env);
       case "/api/search":
         return handleSearchGames(request, env);
+      case "/api/hidden-descriptions":
+        return handleGetHiddenDescriptions(request, env);
+      case "/api/search-users":
+        return handleSearchUsers(request, env);
+      case "/api/resolve-vanity":
+        return handleResolveVanity(request, env);
       case "/":
         return jsonResponse(
           { status: "ok", message: "Steam Achievements API Proxy" },

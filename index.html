@@ -18,8 +18,8 @@
           <h3>ℹ️ Quick Start Guide</h3>
           <ol>
             <li>
-              Find your 17-digit Steam ID using
-              <a href="https://steamid.io/" target="_blank">steamid.io</a>
+              Search for your Steam profile by name, or enter your 17-digit
+              Steam ID directly
             </li>
             <li>Search for your game by name or enter the App ID directly</li>
             <li>Click "Fetch Achievements" to see your progress!</li>
@@ -27,21 +27,35 @@
         </div>
 
         <div class="input-group">
+          <label for="userSearch">Steam User:</label>
+          <div class="search-wrapper" id="userSearchWrapper">
+            <input
+              type="text"
+              id="userSearch"
+              placeholder="Search for a Steam user..."
+              autocomplete="off"
+            />
+            <div id="userSearchResults" class="search-results hidden"></div>
+          </div>
+          <small>Start typing a username to search, or enter Steam ID below</small>
+        </div>
+
+        <div class="input-group">
           <label for="steamId">Steam ID (17-digit numeric ID):</label>
           <input
             type="text"
             id="steamId"
-            placeholder="Enter your 17-digit Steam ID"
+            placeholder="Auto-filled or enter manually"
           />
           <small
-            >Example: 76561198000000000 (find yours at
-            <a href="https://steamid.io/" target="_blank">steamid.io</a>)</small
+            >Filled automatically when you select a user, or enter manually
+            (<a href="https://steamid.io/" target="_blank">steamid.io</a>)</small
           >
         </div>
 
         <div class="input-group">
           <label for="gameSearch">Game Name:</label>
-          <div class="search-wrapper">
+          <div class="search-wrapper" id="gameSearchWrapper">
             <input
               type="text"
               id="gameSearch"
@@ -106,7 +120,9 @@
         <div class="achievements-section">
           <div class="section-header">
             <h3>Achievements</h3>
-            <button id="toggleView" class="toggle-btn">Show Incomplete Only</button>
+            <button id="toggleView" class="toggle-btn">
+              Show Incomplete Only
+            </button>
           </div>
           <div id="achievementsList" class="achievements-list"></div>
         </div>

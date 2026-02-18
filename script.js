@@ -14,6 +14,7 @@ class SteamAchievementsTracker {
     this.userAchievements = [];
     this.showOnlyIncomplete = false;
     this.searchDebounceTimer = null;
+    this.userSearchDebounceTimer = null;
     this.DEFAULT_ACHIEVEMENT_ICON =
       "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22%3E%3Crect fill=%22%232a475e%22 width=%2264%22 height=%2264%22/%3E%3C/svg%3E";
 
@@ -27,6 +28,8 @@ class SteamAchievementsTracker {
     const toggleBtn = document.getElementById("toggleView");
     const gameSearch = document.getElementById("gameSearch");
     const searchResults = document.getElementById("searchResults");
+    const userSearch = document.getElementById("userSearch");
+    const userSearchResults = document.getElementById("userSearchResults");
 
     fetchBtn.addEventListener("click", () => this.fetchAchievements());
     toggleBtn.addEventListener("click", () => this.toggleView());
@@ -35,16 +38,29 @@ class SteamAchievementsTracker {
     gameSearch.addEventListener("input", () => this.onSearchInput());
     gameSearch.addEventListener("keydown", (e) => this.onSearchKeydown(e));
 
-    // Close dropdown when clicking outside
+    // User search autocomplete
+    userSearch.addEventListener("input", () => this.onUserSearchInput());
+    userSearch.addEventListener("keydown", (e) =>
+      this.onUserSearchKeydown(e),
+    );
+
+    // Close dropdowns when clicking outside
     document.addEventListener("click", (e) => {
-      if (!e.target.closest(".search-wrapper")) {
+      if (!e.target.closest("#gameSearchWrapper")) {
         searchResults.classList.add("hidden");
+      }
+      if (!e.target.closest("#userSearchWrapper")) {
+        userSearchResults.classList.add("hidden");
       }
     });
 
     document.querySelectorAll("input").forEach((input) => {
       input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter" && input.id !== "gameSearch") {
+        if (
+          e.key === "Enter" &&
+          input.id !== "gameSearch" &&
+          input.id !== "userSearch"
+        ) {
           this.fetchAchievements();
         }
       });
@@ -152,6 +168,150 @@ class SteamAchievementsTracker {
     document.getElementById("searchResults").classList.add("hidden");
   }
 
+  // ── User search ──────────────────────────────────────────────────────
+
+  onUserSearchInput() {
+    const term = document.getElementById("userSearch").value.trim();
+    clearTimeout(this.userSearchDebounceTimer);
+
+    if (term.length < 2) {
+      document.getElementById("userSearchResults").classList.add("hidden");
+      return;
+    }
+
+    this.userSearchDebounceTimer = setTimeout(
+      () => this.searchUsers(term),
+      300,
+    );
+  }
+
+  onUserSearchKeydown(e) {
+    const dropdown = document.getElementById("userSearchResults");
+    const items = dropdown.querySelectorAll(".search-item");
+    const active = dropdown.querySelector(".search-item.active");
+
+    if (e.key === "Escape") {
+      dropdown.classList.add("hidden");
+      return;
+    }
+
+    if (!items.length || dropdown.classList.contains("hidden")) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = active ? active.nextElementSibling || items[0] : items[0];
+      items.forEach((i) => i.classList.remove("active"));
+      next.classList.add("active");
+      next.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prev = active
+        ? active.previousElementSibling || items[items.length - 1]
+        : items[items.length - 1];
+      items.forEach((i) => i.classList.remove("active"));
+      prev.classList.add("active");
+      prev.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (active) {
+        this.selectUser(
+          active.dataset.steamid,
+          active.dataset.vanityurl,
+          active.dataset.name,
+        );
+      }
+    }
+  }
+
+  async searchUsers(term) {
+    const dropdown = document.getElementById("userSearchResults");
+
+    try {
+      const resp = await fetch(
+        `${this.WORKER_URL}/api/search-users?term=${encodeURIComponent(term)}`,
+      );
+
+      if (!resp.ok) {
+        dropdown.classList.add("hidden");
+        return;
+      }
+
+      const users = await resp.json();
+
+      if (!Array.isArray(users) || users.length === 0) {
+        dropdown.innerHTML =
+          '<div class="search-empty">No users found</div>';
+        dropdown.classList.remove("hidden");
+        return;
+      }
+
+      dropdown.innerHTML = users
+        .map(
+          (u) =>
+            `<div class="search-item user-search-item"
+                  data-steamid="${u.steamId || ""}"
+                  data-vanityurl="${u.vanityUrl || ""}"
+                  data-name="${u.name.replace(/"/g, "&quot;")}">
+              <img class="search-item-avatar" src="${u.avatar}" alt=""
+                   onerror="this.style.display='none'">
+              <div class="search-item-info">
+                <span class="search-item-name">${u.name}</span>
+                <span class="search-item-appid">${u.steamId || u.vanityUrl}</span>
+              </div>
+            </div>`,
+        )
+        .join("");
+
+      dropdown.classList.remove("hidden");
+
+      // Attach click handlers
+      dropdown.querySelectorAll(".search-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          this.selectUser(
+            item.dataset.steamid,
+            item.dataset.vanityurl,
+            item.dataset.name,
+          );
+        });
+      });
+    } catch {
+      dropdown.classList.add("hidden");
+    }
+  }
+
+  async selectUser(steamId, vanityUrl, name) {
+    document.getElementById("userSearch").value = name;
+    document.getElementById("userSearchResults").classList.add("hidden");
+
+    if (steamId) {
+      document.getElementById("steamId").value = steamId;
+      return;
+    }
+
+    // Need to resolve vanity URL to Steam64 ID
+    if (vanityUrl) {
+      try {
+        document.getElementById("steamId").value = "Resolving...";
+        const resp = await fetch(
+          `${this.WORKER_URL}/api/resolve-vanity?vanityurl=${encodeURIComponent(vanityUrl)}`,
+        );
+        const data = await resp.json();
+
+        if (data.response && data.response.success === 1) {
+          document.getElementById("steamId").value = data.response.steamid;
+        } else {
+          document.getElementById("steamId").value = "";
+          this.showError(
+            `Could not resolve Steam ID for "${name}". Try entering the Steam ID manually.`,
+          );
+        }
+      } catch {
+        document.getElementById("steamId").value = "";
+        this.showError("Failed to resolve vanity URL. Enter Steam ID manually.");
+      }
+    }
+  }
+
   // ── Main flow ────────────────────────────────────────────────────────
 
   async fetchAchievements() {
@@ -174,12 +334,14 @@ class SteamAchievementsTracker {
     this.hideResults();
 
     try {
-      const [gameSchema, userAchievements] = await Promise.all([
-        this.fetchGameSchema(),
-        this.fetchUserAchievements(),
-      ]);
+      const [gameSchema, userAchievements, hiddenDescriptions] =
+        await Promise.all([
+          this.fetchGameSchema(),
+          this.fetchUserAchievements(),
+          this.fetchHiddenDescriptions(),
+        ]);
 
-      this.processAchievements(gameSchema, userAchievements);
+      this.processAchievements(gameSchema, userAchievements, hiddenDescriptions);
       this.displayResults();
     } catch (error) {
       console.error("Error:", error);
@@ -261,9 +423,21 @@ class SteamAchievementsTracker {
     return data.playerstats.achievements;
   }
 
+  async fetchHiddenDescriptions() {
+    try {
+      const url = `${this.WORKER_URL}/api/hidden-descriptions?appid=${this.gameId}`;
+      const response = await fetch(url);
+      if (!response.ok) return {};
+      return await response.json();
+    } catch {
+      // Non-critical — just means hidden descriptions won't be enriched
+      return {};
+    }
+  }
+
   // ── Processing & rendering ───────────────────────────────────────────
 
-  processAchievements(gameSchema, userAchievements) {
+  processAchievements(gameSchema, userAchievements, hiddenDescriptions = {}) {
     this.allAchievements = gameSchema.map((achievement) => {
       const userAch = userAchievements.find(
         (ua) => ua.apiname === achievement.name,
@@ -271,9 +445,18 @@ class SteamAchievementsTracker {
       const unlocked = userAch ? userAch.achieved === 1 : false;
       const unlockTime = userAch && unlocked ? userAch.unlocktime : null;
 
+      // Use Steam API description first, then fall back to SteamHunters
+      let description = achievement.description;
+      if (!description && hiddenDescriptions[achievement.name]) {
+        description = hiddenDescriptions[achievement.name];
+      }
+      if (!description) {
+        description = "No description available";
+      }
+
       return {
         name: achievement.displayName || achievement.name,
-        description: achievement.description || "No description available",
+        description,
         icon: achievement.icon || "",
         iconGray: achievement.icongray || achievement.icon || "",
         hidden: achievement.hidden === 1,

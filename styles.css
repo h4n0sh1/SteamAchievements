@@ -189,6 +189,21 @@ h1 {
   font-size: 13px;
 }
 
+/* User search avatar (round) */
+.search-item-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+  flex-shrink: 0;
+  background: var(--steam-gray);
+}
+
+.user-search-item .search-item-info {
+  min-width: 0;
+}
+
 label {
   display: block;
   margin-bottom: 8px;
