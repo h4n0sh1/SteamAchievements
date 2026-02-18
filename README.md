@@ -1,8 +1,8 @@
 # Steam Achievements Tracker
 
-If you've ever tried to 100% a Steam game, you know the pain: hidden achievements with no description, no hint, nothing — just a locked icon and a question mark. You're left tabbing between the game, the Steam overlay, and random wikis trying to figure out what you're missing.
+A simple achievement tracker to find missing hidden achievements — quick, private, and to the point. No ads, no trackers, no third-party integrations.
 
-This tool exists because that workflow is annoying. Search for a game, see every achievement at a glance — including full descriptions for hidden ones — and know exactly what's left to do. No setup, no API keys to manage, just type and go.
+![Steam Achievements Tracker](docs/steam_tracker.png)
 
 **[Try it live →](https://h4n0sh1.github.io/SteamAchievements/)**
 
